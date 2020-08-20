@@ -14,8 +14,8 @@
 // C2,C3,C4,C5 : A14,A9,A10,A8
 // C6,C7,C8,C9 : A7,A12,A13,A11
 // C40         : /RST
-// C41         : /IO? (only use when unlocking MMC)
-// C42         : /MMC (access port on cartridge with both /CART and /MMC = L)
+// C41         : /MBC (open-drain authentication from mapper IC to enable WS to turn on)
+// C42         : M/IO (8086 "minimum" mode specify whether address bus is for memory or I/O)
 // C43         : /OE
 // C44         : /WE
 // C45         : /CART? (L when accessing cartridge (ROM/SRAM/PORT))
@@ -64,7 +64,7 @@ void setup_WS()
   DDRE |= (1 << 3);
   PORTE &= ~(1 << 3);
 
-  // IO? as input with internal pull-up enabled
+  // MBC as input with internal pull-up enabled
   DDRE &= ~(1 << 4);
   PORTE |= (1 << 4);
 
@@ -1055,7 +1055,7 @@ void writeByte_WSPort(uint8_t port, uint8_t data)
   PORTF = (port & 0x0f);
   PORTL = (port >> 4);
 
-  // switch CART(PH3), MMC(PH4) to LOW
+  // switch CART(PH3), M/IO(PH4) to LOW
   PORTH &= ~((1 << 3) | (1 << 4));
 
   // set data
@@ -1069,7 +1069,7 @@ void writeByte_WSPort(uint8_t port, uint8_t data)
   PORTH |= (1 << 5);
   NOP; NOP;
 
-  // switch CART(PH3), MMC(PH4) to HIGH
+  // switch CART(PH3), M/IO(PH4) to HIGH
   PORTH |= ((1 << 3) | (1 << 4));
 }
 
@@ -1078,7 +1078,7 @@ uint8_t readByte_WSPort(uint8_t port)
   PORTF = (port & 0x0f);
   PORTL = (port >> 4);
 
-  // switch CART(PH3), MMC(PH4) to LOW
+  // switch CART(PH3), M/IO(PH4) to LOW
   PORTH &= ~((1 << 3) | (1 << 4));
 
   // switch OE(PH6) to LOW
@@ -1090,7 +1090,7 @@ uint8_t readByte_WSPort(uint8_t port)
   // switch OE(PH6) to HIGH
   PORTH |= (1 << 6);
 
-  // switch CART(PH3), MMC(PH4) to HIGH
+  // switch CART(PH3), M/IO(PH4) to HIGH
   PORTH |= ((1 << 3) | (1 << 4));
 
   return ret;
@@ -1215,7 +1215,7 @@ boolean unlockMMC2003_WS()
 {
   // initialize all control pin state
   // RST(PH0) and CLK(PE3) to LOW
-  // CART(PH3) MMC(PH4) WE(PH5) OE(PH6) to HIGH
+  // CART(PH3) M/IO(PH4) WE(PH5) OE(PH6) to HIGH
   PORTH &= ~(1 << 0);
   PORTE &= ~(1 << 3);
   PORTH |= ((1 << 3) | (1 << 4) | (1 << 5) | (1 << 6));
@@ -1231,7 +1231,7 @@ boolean unlockMMC2003_WS()
   PORTL = 0x0a;
   pulseCLK_WS(4);
 
-  // MMC is outputing something on IO? pin synchronized with CLK
+  // 2001/2003 is outputing something on MBC pin synchronized with CLK
   // so still need to pulse CLK until MMC is ok to work
   pulseCLK_WS(18);
 
